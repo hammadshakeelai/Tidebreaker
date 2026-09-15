@@ -1,0 +1,198 @@
+[
+  {
+    "name": "engine_low",
+    "kind": "loop",
+    "seconds": 0.794,
+    "seamBefore": "3.4",
+    "seamAfter": "1.2"
+  },
+  {
+    "name": "engine_mid",
+    "kind": "loop",
+    "seconds": 0.556,
+    "seamBefore": "1.3",
+    "seamAfter": "1.3"
+  },
+  {
+    "name": "engine_high",
+    "kind": "loop",
+    "seconds": 0.57,
+    "seamBefore": "4.0",
+    "seamAfter": "0.1"
+  },
+  {
+    "name": "hull_water",
+    "kind": "loop",
+    "seconds": 6.414,
+    "seamBefore": "0.1",
+    "seamAfter": "0.2"
+  },
+  {
+    "name": "spray_hiss",
+    "kind": "loop",
+    "seconds": 1.533,
+    "seamBefore": "0.2",
+    "seamAfter": "0.1"
+  },
+  {
+    "name": "wind",
+    "kind": "loop",
+    "seconds": 6.332,
+    "seamBefore": "1.2",
+    "seamAfter": "0.5"
+  },
+  {
+    "name": "wave_wash_a",
+    "kind": "oneshot",
+    "seconds": 4,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "wave_wash_b",
+    "kind": "oneshot",
+    "seconds": 2.25,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "splash_big",
+    "kind": "oneshot",
+    "seconds": 1.381,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "splash_light",
+    "kind": "oneshot",
+    "seconds": 0.772,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "splash_med",
+    "kind": "oneshot",
+    "seconds": 1.177,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "splash_heavy",
+    "kind": "oneshot",
+    "seconds": 1.26,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "beacon_bell",
+    "kind": "oneshot",
+    "seconds": 1.3,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "finish_gong",
+    "kind": "oneshot",
+    "seconds": 1.424,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "boost_whoosh",
+    "kind": "oneshot",
+    "seconds": 0.356,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "soft_whoosh",
+    "kind": "oneshot",
+    "seconds": 0.49,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_confirm",
+    "kind": "oneshot",
+    "seconds": 0.562,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_go",
+    "kind": "oneshot",
+    "seconds": 0.501,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_select",
+    "kind": "oneshot",
+    "seconds": 0.062,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_click",
+    "kind": "oneshot",
+    "seconds": 0.012,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_open",
+    "kind": "oneshot",
+    "seconds": 0.212,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_close",
+    "kind": "oneshot",
+    "seconds": 0.222,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_glass",
+    "kind": "oneshot",
+    "seconds": 0.129,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "ui_bong",
+    "kind": "oneshot",
+    "seconds": 0.132,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "hit_wood",
+    "kind": "oneshot",
+    "seconds": 0.31,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "hit_plank",
+    "kind": "oneshot",
+    "seconds": 0.779,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "hit_soft",
+    "kind": "oneshot",
+    "seconds": 0.527,
+    "seamBefore": "",
+    "seamAfter": ""
+  },
+  {
+    "name": "music_harbour",
+    "kind": "music",
+    "seconds": 8.328,
+    "seamBefore": "8.0",
+    "seamAfter": "3.3"
+  }
+]

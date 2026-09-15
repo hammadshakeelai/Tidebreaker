@@ -1,0 +1,23 @@
+{
+  "name": "tidebreaker",
+  "version": "1.0.0",
+  "description": "Golden-hour low-poly boat racing game on a procedural ocean",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "audio": "node tools/audio/build-audio.mjs"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/figtree": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.6"
+  },
+  "private": true
+}

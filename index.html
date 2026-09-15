@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>Tidebreaker · golden-hour boat regatta</title>
+    <meta name="description" content="A fast low-poly boat racing game on a procedural golden-hour ocean. Race three rival skippers and your own ghost through five tide beacons, right in your browser." />
+    <meta name="theme-color" content="#f0a6b6" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tidebreaker" />
+    <meta property="og:description" content="Golden-hour boat regatta on a procedural low-poly ocean. Plays in the browser." />
+    <meta property="og:image" content="https://hammadshakeelai.github.io/Tidebreaker/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Tidebreaker game view"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="speedlines" id="speedlines" aria-hidden="true"></div>
+
+    <!-- ============================== HUD ============================== -->
+    <div id="hud" class="hud" hidden>
+      <header class="hud-brand">
+        <div class="brand-word">Tidebreaker</div>
+        <div class="brand-sub" id="hud-mode">The golden regatta</div>
+        <div class="brand-pips" id="hud-pips"><i></i><i></i><i></i><i></i><i></i></div>
+        <ol class="standings" id="hud-standings"></ol>
+      </header>
+
+      <section class="panel hud-objective">
+        <svg class="compass" viewBox="-24 -24 48 48" aria-hidden="true">
+          <circle r="21" class="ring" />
+          <g id="compass-rose">
+            <g class="ticks">
+              <line y1="-21" y2="-17" /><line y1="-21" y2="-18" transform="rotate(30)" /><line y1="-21" y2="-18" transform="rotate(60)" />
+              <line y1="-21" y2="-17" transform="rotate(90)" /><line y1="-21" y2="-18" transform="rotate(120)" /><line y1="-21" y2="-18" transform="rotate(150)" />
+              <line y1="-21" y2="-17" transform="rotate(180)" /><line y1="-21" y2="-18" transform="rotate(210)" /><line y1="-21" y2="-18" transform="rotate(240)" />
+              <line y1="-21" y2="-17" transform="rotate(270)" /><line y1="-21" y2="-18" transform="rotate(300)" /><line y1="-21" y2="-18" transform="rotate(330)" />
+            </g>
+            <path d="M0 -15 L3 -4 L0 -6 L-3 -4 Z" class="north" />
+            <text y="-8.5" class="n">N</text>
+          </g>
+          <g id="compass-target"><path d="M0 -21 L2.6 -15.5 L-2.6 -15.5 Z" class="target" /></g>
+          <circle r="1.6" class="hub" />
+        </svg>
+        <div class="objective-body">
+          <div class="objective-row">
+            <span class="mono" id="hud-bearing">N 000°</span>
+            <span class="rule"></span>
+            <span class="mono" id="hud-count">0/5</span>
+          </div>
+          <div class="objective-row objective-target">
+            <svg viewBox="0 0 12 12" class="arrow" aria-hidden="true"><path d="M2 10 L10 2 M4 2 H10 V8" /></svg>
+            <span id="hud-target">Light the Marisol beacon</span>
+            <span class="mono dim" id="hud-dist">0 m</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel hud-clock">
+        <svg class="clock-dial" viewBox="-24 -24 48 48" aria-hidden="true">
+          <circle r="21" class="ring" />
+          <g class="ticks">
+            <line y1="-21" y2="-17" /><line y1="-21" y2="-19" transform="rotate(30)" /><line y1="-21" y2="-19" transform="rotate(60)" />
+            <line y1="-21" y2="-17" transform="rotate(90)" /><line y1="-21" y2="-19" transform="rotate(120)" /><line y1="-21" y2="-19" transform="rotate(150)" />
+            <line y1="-21" y2="-17" transform="rotate(180)" /><line y1="-21" y2="-19" transform="rotate(210)" /><line y1="-21" y2="-19" transform="rotate(240)" />
+            <line y1="-21" y2="-17" transform="rotate(270)" /><line y1="-21" y2="-19" transform="rotate(300)" /><line y1="-21" y2="-19" transform="rotate(330)" />
+          </g>
+          <line id="clock-hand-min" y2="-11" class="hand" />
+          <line id="clock-hand-sec" y2="-17" class="hand thin" />
+          <circle r="1.6" class="hub" />
+        </svg>
+        <div class="clock-body">
+          <div class="label" id="hud-clock-label">Race time</div>
+          <div class="clock-time mono" id="hud-time">00:00.00</div>
+          <div class="label accent" id="hud-place">Golden sunrise</div>
+        </div>
+      </section>
+
+      <nav class="hud-actions" aria-label="Voyage actions">
+        <button type="button" data-action="camera">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5v11M2.5 8h11" /></svg>
+          <span id="hud-cam-action">At the helm</span><kbd>C</kbd>
+        </button>
+        <button type="button" data-action="cruise">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 11a5.5 5.5 0 1 1 11 0" /><path d="M8 11l3-4" /></svg>
+          <span id="hud-cruise-action">Engage cruise</span><kbd>R</kbd>
+        </button>
+        <button type="button" data-action="chart">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5l4-1.5 5 2 4-1.5v10l-4 1.5-5-2-4 1.5z" /><path d="M5.5 2v10M10.5 4v10" /></svg>
+          <span>Open nautical chart</span><kbd>M</kbd>
+        </button>
+        <button type="button" data-action="pause">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h12M2 11.5h12" /><circle cx="5.5" cy="4.5" r="1.6" /><circle cx="10.5" cy="11.5" r="1.6" /></svg>
+          <span>Voyage options</span><kbd>Esc</kbd>
+        </button>
+      </nav>
+
+      <section class="panel hud-speed">
+        <svg class="speed-dial" viewBox="-30 -30 60 60" aria-hidden="true">
+          <circle r="27" class="ring" />
+          <g id="speed-ticks" class="ticks"></g>
+          <line id="speed-needle" y2="-20" class="needle" />
+          <circle r="2" class="hub" />
+        </svg>
+        <div class="speed-body">
+          <div class="speed-row">
+            <span class="speed-num" id="hud-speed">0</span>
+            <span class="label">Knots</span>
+          </div>
+          <div class="speed-rule"><div class="boost-fill" id="hud-boost"></div></div>
+          <div class="label" id="hud-sea">Riding tide</div>
+          <div class="speed-foot">
+            <span class="dot" id="hud-dot"></span>
+            <span class="label" id="hud-sky">Clear skies</span>
+            <span class="label right" id="hud-state">Steady</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="hud-keys" id="hud-keys">
+        <span><kbd>W</kbd> throttle</span>
+        <span><kbd>A</kbd><kbd>D</kbd> steer</span>
+        <span><kbd>Shift</kbd> boost</span>
+        <span><kbd>Space</kbd> drift</span>
+        <span><kbd>R</kbd> cruise</span>
+      </div>
+      <div class="hud-cam label" id="hud-cam">Following the boat</div>
+
+      <div class="countdown" id="countdown" aria-live="assertive"></div>
+      <div class="callout" id="callout" aria-live="polite"></div>
+      <div class="split mono" id="split"></div>
+    </div>
+
+    <!-- ============================== MENU ============================== -->
+    <div id="menu" class="screen screen-menu" hidden>
+      <div class="menu-card">
+        <p class="eyebrow">A golden-hour regatta</p>
+        <h1 class="title">Tidebreaker</h1>
+        <p class="lede">Five tide beacons, three rival skippers and a ghost of your best run. Read the swell, catch air off the crests and set a new tide record.</p>
+        <div class="menu-actions">
+          <button type="button" class="btn btn-primary" data-mode="regatta"><span>Race the regatta</span><kbd>Enter</kbd></button>
+          <button type="button" class="btn" data-mode="trial"><span>Time trial</span><small>you vs your ghost</small></button>
+          <button type="button" class="btn" data-mode="cruise"><span>Free cruise</span><small>no clock, just the sea</small></button>
+        </div>
+        <dl class="menu-meta">
+          <div><dt class="label">Tide record</dt><dd class="mono" id="menu-best">None yet</dd></div>
+          <div><dt class="label">Sky</dt><dd><button type="button" class="link" id="menu-sky">Golden sunrise</button></dd></div>
+          <div><dt class="label">Sound</dt><dd><button type="button" class="link" id="menu-sound">On</button></dd></div>
+        </dl>
+      </div>
+      <aside class="menu-controls panel" aria-label="Controls">
+        <div class="label">At the helm</div>
+        <ul>
+          <li><span>Throttle / brake</span><span><kbd>W</kbd><kbd>S</kbd></span></li>
+          <li><span>Steer</span><span><kbd>A</kbd><kbd>D</kbd></span></li>
+          <li><span>Boost</span><kbd>Shift</kbd></li>
+          <li><span>Power drift</span><kbd>Space</kbd></li>
+          <li><span>Cruise control</span><kbd>R</kbd></li>
+          <li><span>Camera</span><kbd>C</kbd></li>
+          <li><span>Nautical chart</span><kbd>M</kbd></li>
+          <li><span>Sky / time of day</span><kbd>T</kbd></li>
+          <li><span>Restart run</span><kbd>Backspace</kbd></li>
+        </ul>
+        <p class="hint">Gamepad works too: RT throttle, LT brake, A boost, X drift. On touch screens, steer with the left pad.</p>
+      </aside>
+    </div>
+
+    <!-- ============================== PAUSE ============================== -->
+    <div id="pause" class="screen screen-pause" hidden>
+      <div class="panel dialog">
+        <div class="label">Voyage options</div>
+        <h2>Paused</h2>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" data-pause="resume"><span>Resume</span><kbd>Esc</kbd></button>
+          <button type="button" class="btn" data-pause="restart"><span>Restart run</span></button>
+          <button type="button" class="btn" data-pause="menu"><span>Back to harbour</span></button>
+        </div>
+        <div class="settings">
+          <label><span class="label">Master volume</span><input type="range" min="0" max="1" step="0.05" id="set-volume" /></label>
+          <label><span class="label">Music</span><input type="range" min="0" max="1" step="0.05" id="set-music" /></label>
+          <label><span class="label">Graphics</span>
+            <select id="set-quality">
+              <option value="auto">Auto (adaptive)</option>
+              <option value="high">High</option>
+              <option value="low">Low / battery</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="set-shake" /><span class="label">Camera shake</span></label>
+          <label class="check"><input type="checkbox" id="set-fps" /><span class="label">Show FPS</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== RESULTS ============================== -->
+    <div id="results" class="screen screen-results" hidden>
+      <div class="panel dialog results">
+        <div class="label" id="res-kicker">Regatta complete</div>
+        <h2 id="res-title">1st place</h2>
+        <div class="res-time mono" id="res-time">01:42.18</div>
+        <div class="res-delta mono" id="res-delta"></div>
+        <table class="splits" id="res-splits"><tbody></tbody></table>
+        <div class="dialog-actions row">
+          <button type="button" class="btn btn-primary" data-results="again"><span>Race again</span><kbd>Enter</kbd></button>
+          <button type="button" class="btn" data-results="menu"><span>Harbour</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== CHART ============================== -->
+    <div id="chart" class="chart" hidden>
+      <div class="panel chart-card">
+        <div class="chart-head"><span class="label">Nautical chart · Tidebreak Sound</span><span class="label dim">M to close</span></div>
+        <canvas id="chart-canvas" width="720" height="720"></canvas>
+      </div>
+    </div>
+
+    <!-- ============================== TOUCH ============================== -->
+    <div id="touch" class="touch" hidden>
+      <div class="touch-stick" id="touch-stick"><div class="touch-knob" id="touch-knob"></div></div>
+      <div class="touch-buttons">
+        <button type="button" data-touch="drift">Drift</button>
+        <button type="button" data-touch="boost">Boost</button>
+        <button type="button" data-touch="brake">Brake</button>
+        <button type="button" data-touch="throttle" class="big">Throttle</button>
+      </div>
+      <button type="button" class="touch-pause" data-touch="pause" aria-label="Pause">II</button>
+    </div>
+
+    <div class="fps mono" id="fps" hidden></div>
+
+    <div id="loader" class="loader">
+      <div class="loader-word">Tidebreaker</div>
+      <div class="loader-bar"><i id="loader-fill"></i></div>
+      <div class="label" id="loader-label">Tuning the swell</div>
+    </div>
+
+    <noscript>Tidebreaker needs JavaScript and WebGL 2.</noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
