@@ -41,8 +41,8 @@ void main() {
   float core = 1.0 - smoothstep(0.05, 1.0, edge);
   float n = hash(floor(vWorld.xz * vec2(1.3, 0.8)));
   float streak = step(0.6 - 0.25 * life, n) * smoothstep(0.25, 0.85, edge) * (1.0 - smoothstep(0.92, 1.0, edge));
-  vec3 col = mix(uShallow * 1.7 + vec3(0.28, 0.34, 0.36), uFoam, 0.2 + streak * 0.8);
-  float a = strength * life * life * (core * 0.62 + streak * 0.95);
+  vec3 col = mix(uShallow * 1.15 + vec3(0.3, 0.34, 0.36), uFoam, 0.3 + streak * 0.7);
+  float a = strength * life * life * (core * 0.34 + streak * 0.7);
   gl_FragColor = vec4(col, a);
   #include <colorspace_fragment>
 }
