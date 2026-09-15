@@ -248,7 +248,7 @@ export class Spray {
     const bx = boat.pos.x, by = boat.pos.y, bz = boat.pos.z;
     while (acc >= 1) {
       acc -= 1;
-      for (const side of [-1, 1]) {
+      for (let side = -1; side <= 1; side += 2) {
         const drift = boat.drifting && Math.sign(boat.steer) === -side ? 1.8 : 1;
         const out = (1.4 + speed * 0.09 + Math.random() * 1.2) * drift;
         const along = 0.3 + Math.random() * 1.2;

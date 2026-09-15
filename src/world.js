@@ -118,14 +118,25 @@ function stackGeometry(rng, s) {
 const surfVertex = /* glsl */ `
 ${WAVE_GLSL}
 attribute float aRad;
+attribute float aAng;
 varying float vRad;
+varying float vAng;
 varying vec3 vWorld;
 void main() {
   vec4 wp = modelMatrix * vec4(position, 1.0);
-  wp.y = waveHeight(wp.xz) + 0.35 + length(wp.xz - cameraPosition.xz) * 0.005;
+  wp.y = waveHeight(wp.xz) + 0.12;
   vRad = aRad;
+  vAng = aAng;
   vWorld = wp.xyz;
-  gl_Position = projectionMatrix * viewMatrix * wp;
+  vec4 clip = projectionMatrix * viewMatrix * wp;
+  // Depth-only bias toward the camera so the faceted sea never slices the ring.
+  vec3 toCam = cameraPosition - wp.xyz;
+  float dist = length(toCam);
+  vec3 V = toCam / dist;
+  float bias = min(clamp(0.35 / max(V.y, 0.05), 0.3, 5.0), dist * 0.5);
+  vec4 biased = projectionMatrix * viewMatrix * vec4(wp.xyz + V * bias, 1.0);
+  clip.z = biased.z / biased.w * clip.w;
+  gl_Position = clip;
 }
 `;
 
@@ -135,12 +146,19 @@ uniform vec3 uFoam;
 uniform vec3 uFogColor;
 uniform float uFogDensity;
 varying float vRad;
+varying float vAng;
 varying vec3 vWorld;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.7, 311.7))) * 43758.5453); }
 void main() {
   float band = 1.0 - smoothstep(0.0, 1.0, vRad);
-  float n = hash(floor(vWorld.xz * 0.9) + floor(uTime * 1.5 + vRad * 3.0));
-  float foam = band * (0.35 + 0.65 * step(0.45, n));
+  // Foam patches follow the ring's own segments, so they hug the shore as
+  // facets instead of forming a world-aligned checkerboard.
+  float cell = floor(vAng * 2.0);
+  float row = floor(vRad * 3.0);
+  float tick = floor(uTime * 1.1 + hash(vec2(cell, 3.1)) * 5.0);
+  float n = hash(vec2(cell, row) + tick * 0.618);
+  float lap = 0.8 + 0.2 * sin(uTime * 1.4 - vRad * 5.0 + cell * 0.9);
+  float foam = band * lap * (0.4 + 0.6 * step(0.5, n));
   float dist = length(cameraPosition - vWorld);
   float fog = 1.0 - exp(-uFogDensity * uFogDensity * dist * dist);
   gl_FragColor = vec4(mix(uFoam, uFogColor, fog), foam * 0.7 * (1.0 - fog));
@@ -318,14 +336,20 @@ export class World {
     for (const isl of [...this.islands, ...STACKS]) {
       const inner = isl.r * 0.9;
       const outer = isl.r * 1.18 + 6;
-      const rg = new RingGeometry(inner, outer, Math.max(18, Math.round(isl.r * 1.2)), 2);
+      const seg = Math.max(18, Math.round(isl.r * 1.2));
+      const rg = new RingGeometry(inner, outer, seg, 2);
       rg.rotateX(-Math.PI / 2);
       const pos = rg.getAttribute('position');
       const rad = new Float32Array(pos.count);
+      const ang = new Float32Array(pos.count);
       for (let i = 0; i < pos.count; i++) {
         rad[i] = (Math.hypot(pos.getX(i), pos.getZ(i)) - inner) / (outer - inner);
+        // RingGeometry lays out (seg + 1) vertices per radial row, so this is
+        // the segment index around the ring with no wrap seam.
+        ang[i] = i % (seg + 1);
       }
       rg.setAttribute('aRad', new Float32BufferAttribute(rad, 1));
+      rg.setAttribute('aAng', new Float32BufferAttribute(ang, 1));
       rg.deleteAttribute('uv');
       rg.deleteAttribute('normal');
       rg.translate(isl.x, 0, isl.z);
