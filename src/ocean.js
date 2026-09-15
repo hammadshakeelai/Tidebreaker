@@ -120,11 +120,11 @@ void main() {
   float sd = max(dot(R, uSunDir), 0.0);
   col += uSunColor * (pow(sd, 1600.0) * 6.0 + pow(sd, 120.0) * 0.55 + pow(sd, 12.0) * 0.08);
 
-  // Glitter: small facets flash on the sun path, only near the camera.
-  vec2 cell = floor(vWorld.xz / 1.4);
-  float g = hash21(cell + floor(uTime * 5.0) * 0.37);
-  float near = 1.0 - smoothstep(40.0, 220.0, dist);
-  col += uSunColor * step(0.985, g) * pow(sd, 18.0) * 0.9 * uGlitter * near;
+  // Glitter: whole facets flash on the sun path. Seeding the hash with the
+  // facet normal keeps each flash the shape of a triangle.
+  float g = hash21(floor(n.xz * 90.0) + floor(uTime * 4.0) * 0.37);
+  float near = 1.0 - smoothstep(60.0, 320.0, dist);
+  col += uSunColor * step(0.93, g) * pow(sd, 36.0) * 1.1 * uGlitter * near;
 
   // Wind-whipped crests.
   col = mix(col, uFoam, smoothstep(1.6, 2.6, vHeight) * 0.3);
