@@ -2,65 +2,75 @@
 // (displaced in its vertex shader); spray is one pooled Points cloud for every
 // boat in the race. Both are a single draw call each.
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, DoubleSide, DynamicDrawUsage, Mesh, NormalBlending, Points,
-  ShaderMaterial,
+  BufferAttribute, BufferGeometry, DoubleSide, DynamicDrawUsage, Mesh, NormalBlending, Points, ShaderMaterial,
 } from 'three';
 import { WAVE_GLSL, waveUniforms } from './waves.js';
 import { paletteUniforms } from './palette.js';
 
 const SEG = 64;
 const LIFE = 3.2;
+const STRIDE = 7; // x, z, rx, rz, t, strength, serial
 
 const wakeVertex = /* glsl */ `
 ${WAVE_GLSL}
-attribute vec3 aData;
-varying vec3 vData;
-varying vec3 vWorld;
+attribute vec4 aData;
+varying vec4 vData;
 void main() {
   vec3 p = position;
-  // Lift clear of the faceted surface, which can sit above the true curve.
-  float d = length(p.xz - cameraPosition.xz);
-  p.y = waveHeight(p.xz) + 0.35 + d * 0.004;
+  p.y = waveHeight(p.xz) + 0.12;
   vData = aData;
-  vWorld = p;
-  gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+  vec4 clip = projectionMatrix * viewMatrix * vec4(p, 1.0);
+  // Depth-only bias toward the camera. Between its vertices the faceted sea can
+  // sit above the true curve, and at grazing angles it would slice the ribbon
+  // into blocks. Screen position is untouched.
+  vec3 toCam = cameraPosition - p;
+  float dist = length(toCam);
+  vec3 V = toCam / dist;
+  float bias = min(clamp(0.5 / max(V.y, 0.04), 0.5, 12.0), dist * 0.5);
+  vec4 biased = projectionMatrix * viewMatrix * vec4(p + V * bias, 1.0);
+  clip.z = biased.z / biased.w * clip.w;
+  gl_Position = clip;
 }
 `;
 
 const wakeFragment = /* glsl */ `
 uniform vec3 uFoam;
-uniform vec3 uShallow;
-varying vec3 vData;
-varying vec3 vWorld;
+uniform float uIntensity;
+varying vec4 vData;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
 void main() {
   float age = vData.x;
-  float edge = abs(vData.y);
-  float strength = vData.z;
+  float side = vData.y;
+  float edge = abs(side);
+  float strength = vData.z * uIntensity;
   float life = 1.0 - age;
-  float core = 1.0 - smoothstep(0.05, 1.0, edge);
-  float n = hash(floor(vWorld.xz * vec2(1.3, 0.8)));
-  float streak = step(0.6 - 0.25 * life, n) * smoothstep(0.25, 0.85, edge) * (1.0 - smoothstep(0.92, 1.0, edge));
-  vec3 col = mix(uShallow * 1.15 + vec3(0.3, 0.34, 0.36), uFoam, 0.3 + streak * 0.7);
-  float a = strength * life * life * (core * 0.34 + streak * 0.7);
-  gl_FragColor = vec4(col, a);
+  // Churned prop wash down the middle dies quickly; the two arms at the edges
+  // spread and last the length of the ribbon.
+  float wash = (1.0 - smoothstep(0.0, 0.5, edge)) * life * life * life;
+  float arms = smoothstep(0.5, 0.82, edge) * (1.0 - smoothstep(0.88, 1.0, edge)) * life;
+  // Foam breaks into clumps that stay put on the water as the ribbon ages.
+  float clump = hash(vec2(floor(mod(vData.w, 1024.0) * 1.5), floor((side + 1.0) * 3.0)));
+  float foam = step(0.3 + age * 0.55, clump);
+  float a = strength * (wash * (0.45 + 0.25 * foam) + arms * (0.18 + 0.34 * foam));
+  gl_FragColor = vec4(uFoam, a);
   #include <colorspace_fragment>
 }
 `;
 
 export class Wake {
-  constructor() {
-    this.samples = new Float32Array(SEG * 6); // x, z, rx, rz, t, strength
+  constructor({ intensity = 1 } = {}) {
+    this.samples = new Float32Array(SEG * STRIDE);
     this.count = 0;
+    this.serial = 0;
     this.lastX = 0;
     this.lastZ = 0;
     this.lastT = -1;
 
     const geo = new BufferGeometry();
     this.positions = new Float32Array(SEG * 2 * 3);
-    this.data = new Float32Array(SEG * 2 * 3);
+    this.data = new Float32Array(SEG * 2 * 4);
     geo.setAttribute('position', new BufferAttribute(this.positions, 3).setUsage(DynamicDrawUsage));
-    geo.setAttribute('aData', new BufferAttribute(this.data, 3).setUsage(DynamicDrawUsage));
+    geo.setAttribute('aData', new BufferAttribute(this.data, 4).setUsage(DynamicDrawUsage));
     const idx = [];
     for (let i = 0; i < SEG - 1; i++) {
       const a = i * 2;
@@ -73,12 +83,12 @@ export class Wake {
     this.mesh = new Mesh(
       geo,
       new ShaderMaterial({
-        uniforms: { ...waveUniforms, uFoam: paletteUniforms.uFoam, uShallow: paletteUniforms.uShallow },
+        uniforms: { ...waveUniforms, uFoam: paletteUniforms.uFoam, uIntensity: { value: intensity } },
         vertexShader: wakeVertex,
         fragmentShader: wakeFragment,
         transparent: true,
         depthWrite: false,
-        blending: AdditiveBlending,
+        blending: NormalBlending,
         side: DoubleSide,
       }),
     );
@@ -103,8 +113,9 @@ export class Wake {
 
     const moved = Math.hypot(sx - this.lastX, sz - this.lastZ);
     if (this.lastT < 0 || moved > 1.8 || time - this.lastT > 0.25) {
-      s.copyWithin(6, 0, (SEG - 1) * 6);
+      s.copyWithin(STRIDE, 0, (SEG - 1) * STRIDE);
       this.count = Math.min(SEG, this.count + 1);
+      this.serial++;
       this.lastX = sx;
       this.lastZ = sz;
       this.lastT = time;
@@ -116,15 +127,16 @@ export class Wake {
     s[3] = Math.sin(h);
     s[4] = time;
     s[5] = strength;
+    s[6] = this.serial;
 
     const p = this.positions;
     const d = this.data;
     let live = 0;
     for (let i = 0; i < this.count; i++) {
-      const o = i * 6;
+      const o = i * STRIDE;
       const age = (time - s[o + 4]) / LIFE;
       if (age >= 1) break;
-      const w = 0.8 + age * LIFE * 2.4;
+      const w = 0.7 + age * LIFE * 1.7;
       const v = i * 6;
       p[v] = s[o] - s[o + 2] * w;
       p[v + 1] = 0;
@@ -132,12 +144,15 @@ export class Wake {
       p[v + 3] = s[o] + s[o + 2] * w;
       p[v + 4] = 0;
       p[v + 5] = s[o + 1] + s[o + 3] * w;
-      d[v] = age;
-      d[v + 1] = -1;
-      d[v + 2] = s[o + 5];
-      d[v + 3] = age;
-      d[v + 4] = 1;
-      d[v + 5] = s[o + 5];
+      const q = i * 8;
+      d[q] = age;
+      d[q + 1] = -1;
+      d[q + 2] = s[o + 5];
+      d[q + 3] = s[o + 6];
+      d[q + 4] = age;
+      d[q + 5] = 1;
+      d[q + 6] = s[o + 5];
+      d[q + 7] = s[o + 6];
       live++;
     }
     this.geometry.attributes.position.needsUpdate = true;

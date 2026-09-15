@@ -191,8 +191,8 @@
   {
     "name": "music_harbour",
     "kind": "music",
-    "seconds": 8.328,
+    "seconds": 8.268,
     "seamBefore": "8.0",
-    "seamAfter": "3.3"
+    "seamAfter": "1.9"
   }
 ]

@@ -72,7 +72,7 @@ On touch screens you get a steering pad and throttle, brake, boost and drift but
 - Fixed 120 Hz physics with render interpolation, so handling feels the same at 30, 60 or 144 fps.
 - Adaptive resolution: pixel ratio drops when frames run long and climbs back when there's headroom. If that isn't enough, the ocean switches to a lighter grid. You can pin **High** or **Low** in the options.
 - The HUD only touches the DOM when a value changes. Nothing in the hot loops allocates.
-- The production bundle is about 83 KB of game code, plus three.js (121 KB gzipped), plus about 580 KB of audio.
+- The production bundle is about 84 KB of game code plus three.js (121 KB gzipped). Each browser downloads about 580 KB of audio, in Ogg or AAC depending on what it supports.
 
 **Handling**
 - Arcade planing-hull physics with a buoyancy spring, gravity, lateral grip, drift slip, and speed-sensitive steering.

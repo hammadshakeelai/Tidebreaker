@@ -161,7 +161,9 @@ export class Ocean {
   }
 
   update(camera) {
-    const c = this.cell;
+    // Snap to two cells: the diagonals alternate by grid index, so a one-cell
+    // step would flip every facet on the sea.
+    const c = this.cell * 2;
     this.mesh.position.set(Math.round(camera.position.x / c) * c, 0, Math.round(camera.position.z / c) * c);
   }
 }

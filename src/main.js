@@ -79,7 +79,7 @@ const spray = new Spray(1400);
 scene.add(spray.points);
 const wakes = new Map();
 for (const e of race.entrants) {
-  const w = new Wake();
+  const w = new Wake({ intensity: e.boat === player ? 1 : 0.6 });
   wakes.set(e.boat, w);
   scene.add(w.mesh);
 }

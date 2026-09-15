@@ -434,7 +434,7 @@ svg text.n { font: 600 6px var(--font-mono); fill: var(--ink); text-anchor: midd
 .touch-stick {
   position: absolute;
   left: 22px;
-  bottom: 110px;
+  bottom: 124px;
   width: 132px;
   height: 132px;
   border-radius: 50%;
@@ -443,28 +443,50 @@ svg text.n { font: 600 6px var(--font-mono); fill: var(--ink); text-anchor: midd
   pointer-events: auto;
 }
 .touch-knob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255, 240, 236, 0.5); }
-.touch-buttons { position: absolute; right: 18px; bottom: 100px; display: grid; grid-template-columns: repeat(2, 72px); gap: 10px; pointer-events: auto; }
+.touch-buttons { position: absolute; right: 18px; bottom: 118px; display: grid; grid-template-columns: repeat(2, 72px); gap: 10px; pointer-events: auto; }
 .touch-buttons button { height: 56px; border-radius: 12px; border: 1px solid var(--line); background: rgba(46, 34, 52, 0.45); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; }
 .touch-buttons button.big { height: 56px; background: rgba(255, 207, 143, 0.4); }
 .touch-buttons button.pressed { background: rgba(255, 240, 236, 0.45); }
-.touch-pause { position: absolute; right: 18px; top: -46vh; margin-top: 80px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); pointer-events: auto; }
+.touch-pause { position: fixed; right: var(--pad); top: calc(var(--pad) + 76px); width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); pointer-events: auto; }
 
 /* ------------------------------------------------------------ RESPONSIVE */
 @media (max-width: 1100px) {
   .hud-actions { display: none; }
 }
 
+@media (min-width: 1101px) {
+  .touch-pause { display: none; }
+}
+
+@media (pointer: coarse) {
+  .hud-keys { display: none; }
+}
+
+/* Phone portrait: instruments move to the top so the thumbs own the bottom. */
 @media (max-width: 760px) {
   .hud-keys, .hud-cam, .standings, .brand-sub, .brand-pips { display: none; }
-  .hud-objective { top: auto; bottom: calc(var(--pad) + 86px); min-width: 0; max-width: calc(100vw - 28px); }
+  .hud-objective { top: calc(var(--pad) + 76px); left: var(--pad); right: var(--pad); transform: none; min-width: 0; }
+  .split { top: calc(var(--pad) + 146px); }
   .hud-clock .clock-dial { display: none; }
   .clock-time { font-size: 16px; }
-  .hud-speed { width: auto; }
+  .hud-speed { left: 50%; transform: translateX(-50%); min-width: 0; width: min(300px, calc(100vw - 28px)); gap: 10px; padding: 8px 14px 8px 8px; }
   .speed-num { font-size: 34px; }
   .speed-dial { width: 46px; height: 46px; }
+  .touch-pause { top: calc(var(--pad) + 146px); }
   .screen-menu { flex-direction: column; align-items: stretch; justify-content: flex-end; }
   .menu-controls { display: none; }
   .lede { font-size: 14px; }
+}
+
+/* Phone landscape: little height, so the pads drop to the corners. */
+@media (pointer: coarse) and (max-height: 520px) {
+  .standings, .brand-sub, .brand-pips, .hud-cam { display: none; }
+  .hud-clock .clock-dial { display: none; }
+  .hud-speed { left: 50%; transform: translateX(-50%); min-width: 250px; gap: 10px; padding: 6px 14px 6px 8px; }
+  .speed-dial { width: 42px; height: 42px; }
+  .speed-num { font-size: 30px; }
+  .touch-stick { left: 28px; bottom: 22px; width: 120px; height: 120px; }
+  .touch-buttons { right: 24px; bottom: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
