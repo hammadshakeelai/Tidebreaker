@@ -9,9 +9,9 @@
   {
     "name": "engine_mid",
     "kind": "loop",
-    "seconds": 0.556,
+    "seconds": 0.496,
     "seamBefore": "1.3",
-    "seamAfter": "1.3"
+    "seamAfter": "0.8"
   },
   {
     "name": "engine_high",

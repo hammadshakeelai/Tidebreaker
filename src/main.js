@@ -654,15 +654,15 @@ async function boot() {
   let audioProgress = 0;
   const audioPromise = audio.fetchAll((p) => {
     audioProgress = p;
-    fill.style.width = `${Math.round(20 + p * 70)}%`;
+    fill.style.transform = `scaleX(${(0.2 + p * 0.7).toFixed(3)})`;
   });
   label.textContent = 'Tuning the swell';
-  fill.style.width = '12%';
+  fill.style.transform = 'scaleX(0.12)';
   await new Promise((r) => requestAnimationFrame(r));
   renderer.compile(scene, camera);
   label.textContent = 'Loading the soundscape';
   await audioPromise;
-  fill.style.width = '100%';
+  fill.style.transform = 'scaleX(1)';
   label.textContent = audioProgress >= 1 ? 'Ready' : 'Ready (audio unavailable)';
   applyQuality();
   requestAnimationFrame(frame);

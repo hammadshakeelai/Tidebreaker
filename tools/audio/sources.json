@@ -31,7 +31,7 @@
   ],
   "outputs": [
     { "name": "engine_low", "src": "eng0", "kind": "loop", "xfade": 0.07, "curve": "linear", "level": 0.2 },
-    { "name": "engine_mid", "src": "eng3", "kind": "loop", "xfade": 0.06, "curve": "linear", "level": 0.2 },
+    { "name": "engine_mid", "src": "eng3", "kind": "loop", "xfade": 0.12, "curve": "linear", "level": 0.2 },
     { "name": "engine_high", "src": "eng5", "kind": "loop", "xfade": 0.06, "curve": "linear", "level": 0.2 },
     { "name": "hull_water", "src": "water02", "kind": "loop", "channels": 2, "xfade": 0.6, "curve": "power", "level": 0.16 },
     { "name": "spray_hiss", "src": "flowing", "kind": "loop", "channels": 2, "xfade": 0.35, "curve": "power", "level": 0.14 },

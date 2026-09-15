@@ -426,7 +426,7 @@ svg text.n { font: 600 6px var(--font-mono); fill: var(--ink); text-anchor: midd
 .loader.done { opacity: 0; pointer-events: none; }
 .loader-word { font-family: var(--font-display); font-weight: 300; font-size: 44px; letter-spacing: 0.3em; text-transform: uppercase; color: #fff8f4; }
 .loader-bar { width: 200px; height: 2px; background: rgba(255, 255, 255, 0.3); overflow: hidden; }
-.loader-bar i { display: block; height: 100%; width: 0; background: #fff8f4; transition: width 0.2s ease; }
+.loader-bar i { display: block; height: 100%; background: #fff8f4; transform: scaleX(0); transform-origin: left; transition: transform 0.2s ease; }
 .loader .label { color: rgba(255, 250, 246, 0.85); }
 
 /* ------------------------------------------------------------ TOUCH */
