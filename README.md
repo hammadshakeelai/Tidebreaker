@@ -84,6 +84,7 @@ On touch screens you get a steering pad and throttle, brake, boost and drift but
 - Hull water rush, spray hiss and wind all follow your speed. Distant waves wash past in stereo, and there's a panned engine for the nearest rival.
 - Splashes scale with landing impact. Beacon bells rise in pitch as you progress.
 - [`tools/audio/build-audio.mjs`](tools/audio/build-audio.mjs) rebuilds every sound from its source URL. It crossfades loops so they're seamless (it measures the seam before and after), normalizes levels and encodes Ogg + AAC.
+- Ogg and AAC encoders trim and smear the first and last samples of a file, which is exactly where a loop wraps. Every loop is therefore encoded with 50 ms of wrapped padding on each end, and the game loops the untouched middle through `loopStart` / `loopEnd` ([`public/audio/loops.json`](public/audio/loops.json)). Measured in the browser, that takes the engine loop's wrap from a 230x sample-step jump down to 1.6x.
 
 ## Run it locally
 

@@ -17,6 +17,8 @@ mkdirSync(out, { recursive: true });
 
 const { sources, outputs } = JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8'));
 const RATE = 44100;
+// Padding around every loop, in seconds. See the comment in the output loop.
+const LOOP_PAD = 0.05;
 
 async function fetchSource(src) {
   const file = join(cache, src.file);
@@ -139,6 +141,7 @@ function encode(wav, name, kind) {
 
 const byId = Object.fromEntries(sources.map((s) => [s.id, s]));
 const report = [];
+const loops = {};
 
 for (const o of outputs) {
   const src = byId[o.src];
@@ -161,8 +164,21 @@ for (const o of outputs) {
   }
   const p = peak(data);
   if (p > 0.99) scale(data, 0.99 / p);
+  let encoded = data;
+  if (o.kind === 'loop' || o.kind === 'music') {
+    // Lossy encoders trim or smear the first and last few hundred samples,
+    // which is exactly where a loop wraps. Pad both ends with the wrapped
+    // signal and let the game loop the untouched middle (loopStart/loopEnd).
+    const n = frames(data, ch);
+    const pad = Math.round(LOOP_PAD * RATE);
+    encoded = new Float32Array((n + 2 * pad) * ch);
+    encoded.set(data.subarray((n - pad) * ch), 0);
+    encoded.set(data, pad * ch);
+    encoded.set(data.subarray(0, pad * ch), (pad + n) * ch);
+    loops[o.name] = { start: pad / RATE, end: (pad + n) / RATE };
+  }
   const wav = join(cache, `${o.name}.wav`);
-  writeWav(wav, data, ch);
+  writeWav(wav, encoded, ch);
   encode(wav, o.name, o.kind);
   rmSync(wav);
   report.push({
@@ -176,3 +192,4 @@ for (const o of outputs) {
 
 console.table(report);
 writeFileSync(join(here, 'report.json'), JSON.stringify(report, null, 2));
+writeFileSync(join(out, 'loops.json'), JSON.stringify(loops, null, 2));

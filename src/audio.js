@@ -17,6 +17,9 @@ function pickExtension() {
   return a.canPlayType('audio/ogg; codecs="vorbis"') ? 'ogg' : 'm4a';
 }
 
+// Music bus trim, so the harbour loop sits near the race mix in loudness.
+const MUSIC_TRIM = 1.6;
+
 const smooth = (x) => x * x * (3 - 2 * x);
 const band = (x, a, b) => smooth(clamp((x - a) / (b - a), 0, 1));
 
@@ -32,6 +35,7 @@ export class AudioEngine {
     this.loops = {};
     this.ready = false;
     this.lastHover = 0;
+    this.loopPoints = {};
   }
 
   /** Must run inside a user gesture. Safe to call repeatedly. */
@@ -51,7 +55,7 @@ export class AudioEngine {
       this.master.gain.value = this.muted ? 0 : this.volume;
       this.comp.connect(this.master).connect(c.destination);
       this.buses = {};
-      for (const [name, g] of Object.entries({ engine: 0.9, water: 0.9, sfx: 1, ui: 0.55, music: this.musicVolume * 0.9, amb: 0.6 })) {
+      for (const [name, g] of Object.entries({ engine: 0.9, water: 0.6, sfx: 1, ui: 0.55, music: this.musicVolume * MUSIC_TRIM, amb: 0.5 })) {
         const node = c.createGain();
         node.gain.value = g;
         node.connect(this.comp);
@@ -69,6 +73,7 @@ export class AudioEngine {
 
   async fetchAll(onProgress) {
     const names = [...SOUND_NAMES, 'music_harbour'];
+    const points = fetch('audio/loops.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     let done = 0;
     const raw = new Map();
     await Promise.all(
@@ -84,6 +89,7 @@ export class AudioEngine {
       }),
     );
     this.raw = raw;
+    this.loopPoints = await points;
   }
 
   async decodeAll() {
@@ -105,17 +111,14 @@ export class AudioEngine {
   buildLoops() {
     const c = this.ctx;
     const start = (name, bus, chain = []) => {
-      const buf = this.buffers.get(name);
-      if (!buf) return null;
-      const src = c.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
+      const src = this.loopSource(name);
+      if (!src) return null;
       const gain = c.createGain();
       gain.gain.value = 0;
       let node = src;
       for (const n of chain) { node.connect(n); node = n; }
       node.connect(gain).connect(this.buses[bus]);
-      src.start(c.currentTime + Math.random() * 0.05);
+      this.startLoop(src, c.currentTime + Math.random() * 0.05);
       return { src, gain };
     };
 
@@ -127,15 +130,12 @@ export class AudioEngine {
     this.engineGain.gain.value = 0;
     this.engineFilter.connect(this.engineGain).connect(this.buses.engine);
     for (const name of ['engine_low', 'engine_mid', 'engine_high']) {
-      const buf = this.buffers.get(name);
-      if (!buf) continue;
-      const src = c.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
+      const src = this.loopSource(name);
+      if (!src) continue;
       const gain = c.createGain();
       gain.gain.value = 0;
       src.connect(gain).connect(this.engineFilter);
-      src.start(c.currentTime + Math.random() * 0.05);
+      this.startLoop(src, c.currentTime + Math.random() * 0.05);
       this.loops[name] = { src, gain };
     }
 
@@ -144,7 +144,14 @@ export class AudioEngine {
     waterLp.frequency.value = 2400;
     this.waterFilter = waterLp;
     this.loops.hull_water = start('hull_water', 'water', [waterLp]);
-    this.loops.spray_hiss = start('spray_hiss', 'water');
+    // The hiss recording carries steady tones around 5-8 kHz; keep them tucked
+    // under a lowpass that only opens as the boat gets fast.
+    const sprayLp = c.createBiquadFilter();
+    sprayLp.type = 'lowpass';
+    sprayLp.frequency.value = 3200;
+    sprayLp.Q.value = 0.5;
+    this.sprayFilter = sprayLp;
+    this.loops.spray_hiss = start('spray_hiss', 'water', [sprayLp]);
     const windBp = c.createBiquadFilter();
     windBp.type = 'bandpass';
     windBp.frequency.value = 800;
@@ -153,11 +160,8 @@ export class AudioEngine {
     this.loops.wind = start('wind', 'amb', [windBp]);
 
     // One shared rival engine, panned toward the nearest rival.
-    const buf = this.buffers.get('engine_mid');
-    if (buf) {
-      const src = c.createBufferSource();
-      src.buffer = buf;
-      src.loop = true;
+    const src = this.loopSource('engine_mid');
+    if (src) {
       const lp = c.createBiquadFilter();
       lp.type = 'lowpass';
       lp.frequency.value = 1400;
@@ -165,9 +169,31 @@ export class AudioEngine {
       const gain = c.createGain();
       gain.gain.value = 0;
       src.connect(lp).connect(pan).connect(gain).connect(this.buses.engine);
-      src.start();
+      this.startLoop(src);
       this.rival = { src, pan, gain, lp };
     }
+  }
+
+  /**
+   * A looping source over the middle of a padded loop file. Encoders damage
+   * the file edges, so the loop points skip the padding the pipeline added.
+   */
+  loopSource(name) {
+    const buf = this.buffers.get(name);
+    if (!buf) return null;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const pts = this.loopPoints[name];
+    if (pts && pts.end <= buf.duration) {
+      src.loopStart = pts.start;
+      src.loopEnd = pts.end;
+    }
+    return src;
+  }
+
+  startLoop(src, when = this.ctx.currentTime) {
+    src.start(when, src.loopStart || 0);
   }
 
   set(param, value, tc = 0.06) {
@@ -207,16 +233,12 @@ export class AudioEngine {
 
   startMusic() {
     if (!this.ready || this.music) return;
-    const buf = this.buffers.get('music_harbour');
-    if (!buf) return;
-    const c = this.ctx;
-    const src = c.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    const g = c.createGain();
+    const src = this.loopSource('music_harbour');
+    if (!src) return;
+    const g = this.ctx.createGain();
     g.gain.value = 0;
     src.connect(g).connect(this.buses.music);
-    src.start();
+    this.startLoop(src);
     this.music = { src, gain: g };
   }
 
@@ -232,7 +254,7 @@ export class AudioEngine {
 
   setMusicVolume(v) {
     this.musicVolume = v;
-    if (this.buses) this.set(this.buses.music.gain, v * 0.9, 0.05);
+    if (this.buses) this.set(this.buses.music.gain, v * MUSIC_TRIM, 0.05);
   }
 
   duck(on) {
@@ -282,6 +304,7 @@ export class AudioEngine {
     if (L.spray_hiss) {
       const hiss = (band(speed01, 0.35, 0.95) * 0.55 + (boat.drifting ? 0.45 : 0)) * wet;
       this.set(L.spray_hiss.gain.gain, hiss, 0.1);
+      this.set(this.sprayFilter.frequency, 3200 + speed01 * 2600, 0.1);
     }
     if (L.wind) {
       this.set(L.wind.gain.gain, 0.08 + speed01 * speed01 * 0.8 + (air ? 0.25 : 0), 0.15);
