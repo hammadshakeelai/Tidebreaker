@@ -90,7 +90,12 @@ export class Hud {
     el.textContent = value;
     el.classList.remove('pop');
     void el.offsetWidth;
-    if (value) el.classList.add('pop');
+    clearTimeout(this.countdownTimer);
+    if (!value) return;
+    el.classList.add('pop');
+    // Drop the class once the pop has played. A HUD that is hidden and shown
+    // again restarts CSS animations, which replayed a stale "Go" at race start.
+    this.countdownTimer = setTimeout(() => el.classList.remove('pop'), 950);
   }
 
   callout(message, seconds = 1.8) {

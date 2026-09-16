@@ -491,5 +491,5 @@ svg text.n { font: 600 6px var(--font-mono); fill: var(--ink); text-anchor: midd
 
 @media (prefers-reduced-motion: reduce) {
   .brand-pips i.next { animation: none; }
-  .countdown.pop { animation-duration: 0.01s; }
+  .countdown.pop { animation: none; opacity: 1; }
 }
